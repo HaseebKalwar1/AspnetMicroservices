@@ -2,6 +2,7 @@ using Basket.API.GrpcServices;
 using Basket.API.Repositories;
 using Basket.API.Repositories.Interfaces;
 using Discount.Grpc.Protos;
+using MassTransit;
 using System.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +14,23 @@ builder.Services.AddStackExchangeRedisCache(options => {
 });
 
 builder.Services.AddScoped<IBasketRepository, BasketRepository>();
+builder.Services.AddAutoMapper(typeof(StartupBase));
+
+// Redis Configuration
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetValue<string>("CacheSettings:ConnectionString");
+});
+//MassTransit-RabbitMQ Configuration 
+builder.Services.AddMassTransit(config =>
+{
+    config.UsingRabbitMq((ctx, cfg0) =>
+    {
+        cfg0.Host(builder.Configuration["EventBusSettings:HostAddress"]);
+    }
+    );
+});
+//builder.Services.AddMassTransitHostedService();
 
 // Grpc Configuration
 builder.Services.AddGrpcClient<DiscountProtoService.DiscountProtoServiceClient>
